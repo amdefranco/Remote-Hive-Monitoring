@@ -1,0 +1,47 @@
+{
+    "os": "Windows-10-10.0.19045-SP0",
+    "python": "3.10.11",
+    "heartbeatAt": "2024-04-04T03:15:31.196415",
+    "startedAt": "2024-04-04T03:15:30.745437",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\scripts\\mlp.py",
+    "codePathLocal": "mlp.py",
+    "codePath": "mlp.py",
+    "host": "Mates-Beast",
+    "username": "mateo",
+    "executable": "C:\\Users\\mateo\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\\python.exe",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 3701.0,
+        "min": 0.0,
+        "max": 3701.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3701.0,
+            "min": 0.0,
+            "max": 3701.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 930.9036293029785,
+            "used": 904.8758277893066
+        }
+    },
+    "gpu": "NVIDIA GeForce GTX 1080 Ti",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1080 Ti",
+            "memory_total": 11811160064
+        }
+    ],
+    "memory": {
+        "total": 31.927291870117188
+    }
+}

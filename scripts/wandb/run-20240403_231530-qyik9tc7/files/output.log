@@ -1,0 +1,118 @@
+C:\Users\mateo\Desktop\ABBY GOES HERE\bees\scripts\mlp.py:97: FutureWarning: The input object of type 'Tensor' is an array-like implementing one of the corresponding protocols (`__array__`, `__array_interface__` or `__array_struct__`); but not a sequence (or 0-D). In the future, this object will be coerced as if it was first converted using `np.array(obj)`. To retain the old behaviour, you have to either modify the type 'Tensor', or assign to an empty array created with `np.empty(correct_shape, dtype=object)`.
+  X = np.array([data[0] for data in dataset])
+C:\Users\mateo\Desktop\ABBY GOES HERE\bees\scripts\mlp.py:97: VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+  X = np.array([data[0] for data in dataset])
+C:\Users\mateo\Desktop\ABBY GOES HERE\bees\scripts\mlp.py:105: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  train_set = [(torch.tensor(X_train[i]), torch.tensor(y_train[i])) for i in range(len(X_train))]
+C:\Users\mateo\Desktop\ABBY GOES HERE\bees\scripts\mlp.py:106: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  val_set = [(torch.tensor(X_val[i]), torch.tensor(y_val[i])) for i in range(len(X_val))]
+hive temp
+hive humidity
+hive pressure
+weather temp
+weather humidity
+weather pressure
+wind speed
+cloud coverage
+rain
+Epoch 1/100, Loss: 26.97960638999939
+Epoch 2/100, Loss: 23.49956452846527
+Epoch 3/100, Loss: 21.2857985496521
+Epoch 4/100, Loss: 19.702056109905243
+Epoch 5/100, Loss: 18.78918719291687
+Epoch 6/100, Loss: 18.161090672016144
+Epoch 7/100, Loss: 17.605925679206848
+Epoch 8/100, Loss: 16.95887526869774
+Epoch 9/100, Loss: 16.629580974578857
+Epoch 10/100, Loss: 16.330838829278946
+Epoch 11/100, Loss: 15.806781381368637
+Epoch 12/100, Loss: 15.458884298801422
+Epoch 13/100, Loss: 15.18764927983284
+Epoch 14/100, Loss: 14.931471824645996
+Epoch 15/100, Loss: 14.731980621814728
+Epoch 16/100, Loss: 14.237921237945557
+Epoch 17/100, Loss: 14.092789024114609
+Epoch 18/100, Loss: 13.871915519237518
+Epoch 19/100, Loss: 13.588041931390762
+Epoch 20/100, Loss: 13.339392811059952
+Epoch 21/100, Loss: 13.155055940151215
+Epoch 22/100, Loss: 13.039464712142944
+Epoch 23/100, Loss: 12.850507646799088
+Epoch 24/100, Loss: 12.674021482467651
+Epoch 25/100, Loss: 12.568074524402618
+Epoch 26/100, Loss: 12.611285507678986
+Epoch 27/100, Loss: 12.170777440071106
+Epoch 28/100, Loss: 12.072525680065155
+Epoch 29/100, Loss: 12.081856206059456
+Epoch 30/100, Loss: 11.92378917336464
+Epoch 31/100, Loss: 12.019480019807816
+Epoch 32/100, Loss: 11.569912552833557
+Epoch 33/100, Loss: 11.650980234146118
+Epoch 34/100, Loss: 11.4963219165802
+Epoch 35/100, Loss: 11.313591927289963
+Epoch 36/100, Loss: 11.1662058532238
+Epoch 37/100, Loss: 11.161380171775818
+Epoch 38/100, Loss: 10.910782799124718
+Epoch 39/100, Loss: 11.027497231960297
+Epoch 40/100, Loss: 10.709756046533585
+Epoch 41/100, Loss: 10.758389443159103
+Epoch 42/100, Loss: 10.570398554205894
+Epoch 43/100, Loss: 10.399666771292686
+Epoch 44/100, Loss: 10.278539150953293
+Epoch 45/100, Loss: 10.291943460702896
+Epoch 46/100, Loss: 10.37978920340538
+Epoch 47/100, Loss: 10.232895836234093
+Epoch 48/100, Loss: 10.089295700192451
+Epoch 49/100, Loss: 9.942469000816345
+Epoch 50/100, Loss: 9.9100321829319
+Epoch 51/100, Loss: 9.908214434981346
+Epoch 52/100, Loss: 9.873948246240616
+Epoch 53/100, Loss: 9.734780937433243
+Epoch 54/100, Loss: 9.585595697164536
+Epoch 55/100, Loss: 9.458300039172173
+Epoch 56/100, Loss: 9.583623468875885
+Epoch 57/100, Loss: 9.338936448097229
+Epoch 58/100, Loss: 9.335818767547607
+Epoch 59/100, Loss: 9.328268766403198
+Epoch 60/100, Loss: 9.17887932062149
+Epoch 61/100, Loss: 9.24631704390049
+Epoch 62/100, Loss: 9.059892296791077
+Epoch 63/100, Loss: 8.827501967549324
+Epoch 64/100, Loss: 8.827014312148094
+Epoch 65/100, Loss: 8.745452165603638
+Epoch 66/100, Loss: 8.808877594769001
+Epoch 67/100, Loss: 8.658050924539566
+Epoch 68/100, Loss: 8.599068477749825
+Epoch 69/100, Loss: 8.503619939088821
+Epoch 70/100, Loss: 8.556974083185196
+Epoch 71/100, Loss: 8.455502435564995
+Epoch 72/100, Loss: 8.30046883225441
+Epoch 73/100, Loss: 8.211920708417892
+Epoch 74/100, Loss: 8.245389118790627
+Epoch 75/100, Loss: 8.224458247423172
+Epoch 76/100, Loss: 8.020179837942123
+Epoch 77/100, Loss: 8.062331348657608
+Epoch 78/100, Loss: 8.06513649225235
+Epoch 79/100, Loss: 7.884105861186981
+Epoch 80/100, Loss: 7.75044634193182
+Epoch 81/100, Loss: 7.8994323164224625
+Epoch 82/100, Loss: 7.855391815304756
+Epoch 83/100, Loss: 7.614171028137207
+Epoch 84/100, Loss: 7.7021051943302155
+Epoch 85/100, Loss: 7.62174916267395
+Epoch 86/100, Loss: 7.455160871148109
+Epoch 87/100, Loss: 7.463580846786499
+Epoch 88/100, Loss: 7.437995061278343
+Epoch 89/100, Loss: 7.294048115611076
+Epoch 90/100, Loss: 7.300807476043701
+Epoch 91/100, Loss: 7.292019158601761
+Epoch 92/100, Loss: 7.153005391359329
+Epoch 93/100, Loss: 7.173900157213211
+Epoch 94/100, Loss: 7.112538844347
+Epoch 95/100, Loss: 7.031201675534248
+Epoch 96/100, Loss: 7.172795414924622
+Epoch 97/100, Loss: 6.976972207427025
+Epoch 98/100, Loss: 7.003042295575142
+Epoch 99/100, Loss: 6.85572050511837
+Epoch 100/100, Loss: 6.86846674233675
+Validation Accuracy: 0.6666666666666666
