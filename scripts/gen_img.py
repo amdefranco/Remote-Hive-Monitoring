@@ -1,7 +1,10 @@
 import os
 import librosa
 import librosa.display
+
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')
 import numpy as np
 
 # Root directory containing the audio files

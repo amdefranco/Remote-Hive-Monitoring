@@ -6,7 +6,10 @@ from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import numpy as np
+from sklearn.metrics import confusion_matrix
 import wandb
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 
@@ -68,8 +71,8 @@ class CustomDataset(Dataset):
 input_size = 9  # Assuming 10 features excluding filename and target
 hidden_size = 64
 output_size = 4  # Number of classes for target prediction
-batch_size = 256
-epochs = 200
+batch_size = 128
+epochs = 500
 learning_rate = 0.001
 
 
@@ -85,7 +88,7 @@ wandb.init(
               'batch_size': batch_size, 
               'learning_rate': learning_rate, 
               'epochs': epochs},
-    name= "MLP_" + str(epochs) + "_" + str(batch_size) + "_" + str(learning_rate)[2:]
+    name= "MLP_"  + str(hidden_size) + "_" + str(batch_size) + "_" + str(learning_rate)[2:]
            
 )
 
@@ -132,8 +135,20 @@ for epoch in range(epochs):
     print(f"Epoch {epoch+1}/{epochs}, Loss: {running_loss}")
     avg_loss = running_loss / len(train_loader)
     wandb.log({'epoch': epoch, 'loss': avg_loss})
-
-
+    if (epoch % 10 == 0):
+        # Validation loop
+        model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for inputs, labels in val_loader:
+                outputs = model(inputs)
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+            avg_loss = running_loss / len(val_loader)
+            accuracy = 100 * correct / total
+            wandb.log({'val_loss': avg_loss, 'val_accuracy': accuracy})
 # Validation loop
 model.eval()
 correct = 0
@@ -146,8 +161,44 @@ with torch.no_grad():
         correct += (predicted == labels).sum().item()
     avg_loss = running_loss / len(val_loader)
     accuracy = 100 * correct / total
-    wandb.log({'val_loss': avg_loss, 'val_accuracy': accuracy})
-
+    wandb.log({'final_val_loss': avg_loss, 'final_val_accuracy': accuracy})
 accuracy = correct / total
 print(f"Validation Accuracy: {accuracy}")
+
+
 wandb.finish()
+
+def create_confusion_matrix(model, test_loader):
+    model.eval()
+    all_preds = []
+    all_targets = []
+    with torch.no_grad():
+        for inputs, targets in val_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs, 1)
+            all_preds.extend(predicted.numpy())
+            all_targets.extend(targets.numpy())
+    cm = confusion_matrix(all_targets, all_preds)
+    return cm
+
+# Get predictions and targets from the test set
+conf_matrix = create_confusion_matrix(model, val_loader)
+
+# Display the confusion matrix
+print("Confusion Matrix:")
+print(conf_matrix)
+
+
+# Create confusion matrix plot
+def plot_confusion_matrix(conf_matrix, classes):
+    conf_matrix_norm = conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix_norm, annot=True, fmt=".2%", cmap="Blues", xticklabels=classes, yticklabels=classes)
+    plt.xlabel('Predicted Labels')
+    plt.xlabel('Predicted Labels')
+    plt.ylabel('True Labels')
+    plt.title('Confusion Matrix (Normalized)')
+    plt.show()
+
+
+plot_confusion_matrix(conf_matrix, classes=["Present/Original", "Not Present", "Rejected", "Accepted"])
