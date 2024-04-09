@@ -12,19 +12,22 @@ import wandb
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import torch.nn.functional as F
 import numpy as np
-
-total_labels = [0,0,0,0]
+# Define transformations for image preprocessing
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),  # Resize image to 224x224
+    transforms.ToTensor(),           # Convert PIL image to tensor
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])  # Normalize image
+])
+ 
 def convert_label(label:str):
     conv_map = {"queen present or original queen":0,
                 "queen not present":1,
                 "queen present and rejected":2, 
                 "queen present and newly accepted":3}
     num_label = conv_map[label]
-    # total_labels[num_label]+=1
     return num_label
-
-# Define a custom dataset class
 class CustomDataset(Dataset):
     def __init__(self, csv_file, transform=None):
         self.data = pd.read_csv(csv_file)
@@ -56,52 +59,31 @@ class CustomDataset(Dataset):
             image = self.transform(image)
 
         return image, label
-class CNNModel(nn.Module):
-    def __init__(self, num_classes=4):
-        super(CNNModel, self).__init__()
+dataset = CustomDataset(csv_file='C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\train.csv', transform=transform)
+class CRNN(nn.Module):
+    def __init__(self, num_classes=4, hidden_size=256, num_layers=2):
+        super(CRNN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.fc1 = nn.Linear(32 * 56 * 56, 256)
-        self.fc2 = nn.Linear(256, num_classes)
+        self.rnn = nn.LSTM(input_size=32 * 56 * 56, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
+        batch_size, _, _, _ = x.size()
         x = nn.functional.relu(self.conv1(x))
         x = self.pool(x)
         x = nn.functional.relu(self.conv2(x))
         x = self.pool(x)
-        x = x.view(-1, 32 * 56 * 56)
-        x = nn.functional.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = x.view(batch_size, -1, 32 * 56 * 56)  # reshape for the RNN
+        # Forward pass through RNN layer
+        h_0 = torch.zeros(self.rnn.num_layers, x.size(0), self.rnn.hidden_size).to(x.device)
+        c_0 = torch.zeros(self.rnn.num_layers, x.size(0), self.rnn.hidden_size).to(x.device)
+        x, _ = self.rnn(x, (h_0, c_0))
+        # Reshape output from RNN to fit into fully connected layer
+        x = x[:, -1, :]  # get the last timestep output
+        x = self.fc(x)
         return x
-    
-# Define transformations for image preprocessing
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Resize image to 224x224
-    transforms.ToTensor(),           # Convert PIL image to tensor
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])  # Normalize image
-])
-
-# Hyperparameters
-batch_size = 64
-epochs = 200
-learning_rate = 0.001
-
-# start a new wandb run to track this script
-wandb.init(
-    # set the wandb project where this run will be logged
-    project="Honey_Bees",
-
-    # track hyperparameters and run metadata
-    config = {'batch_size': batch_size, 
-              'learning_rate': learning_rate, 
-              'epochs': epochs},
-    name= "CNN_"   + "_" + str(batch_size) + "_" + str(learning_rate)[2:]
-           
-)
-# Create custom dataset and DataLoader
-dataset = CustomDataset(csv_file='C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\train.csv', transform=transform)
-
 # Define the size of train and validation sets
 train_size = int(0.8 * len(dataset))
 val_size = len(dataset) - train_size
@@ -110,67 +92,22 @@ val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # Create DataLoader for train and validation sets
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 
 
 # Example usage in training loop
-model = CNNModel(num_classes=4)
-criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-losses=[]
-for epoch in range(epochs):
-    model.train()
-    running_loss = 0.0
-    for inputs, labels in train_loader:
-        # print(inputs)
-        # import ipdb; ipdb.set_trace()
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        losses.append(loss.item())
-        loss.backward()
-        optimizer.step()
-        running_loss += loss.item()
+# model = CRNN( input_size=(3,224,224), num_classes=4,hidden_size=hidden_size)
+model = CRNN(num_classes=4,hidden_size=256,num_layers=256)
 
-    print(f"Epoch {epoch+1}/{epochs}, Loss: {running_loss}")
-    avg_loss = running_loss / len(train_loader)
-    wandb.log({'epoch': epoch, 'loss': avg_loss})
-    if (epoch % 10 == 0):
-        # Validation loop
-        model.eval()
-        correct = 0
-        total = 0
-        with torch.no_grad():
-            for inputs, labels in val_loader:
-                outputs = model(inputs)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-            avg_loss = running_loss / len(val_loader)
-            accuracy = 100 * correct / total
-            wandb.log({'val_loss': avg_loss, 'val_accuracy': accuracy})
-        accuracy = correct / total
-        print(f"Validation Accuracy: {accuracy}")
-# Validation loop
-model.eval()
-correct = 0
-total = 0
-with torch.no_grad():
-    for inputs, labels in val_loader:
-        outputs = model(inputs)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-    avg_loss = running_loss / len(val_loader)
-    accuracy = 100 * correct / total
-    wandb.log({'final_val_loss': avg_loss, 'final_val_accuracy': accuracy})
-accuracy = correct / total
-print(f"Validation Accuracy: {accuracy}")
+# Specify the path to your saved model
+PATH = 'C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\scripts\\models\\CRNN__64_0005_256.pth'
+# Initialize your model (make sure it has the same architecture)
+# Load the state dictionary from the saved model
+model.load_state_dict(torch.load(PATH, map_location=torch.device('cpu')))
 
+# Now your model is ready for inference
 
-torch.save(model.state_dict(), "models\\CNN_"   + "_" + str(batch_size) + "_" + str(learning_rate)[2:] + ".pth")
-wandb.finish()
 
 def create_confusion_matrix(model, test_loader):
     model.eval()
