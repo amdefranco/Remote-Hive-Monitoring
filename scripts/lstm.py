@@ -1,5 +1,5 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torch.utils.data import random_split
@@ -16,120 +16,111 @@ import numpy as np
 from collections import defaultdict
 from sklearn.model_selection import train_test_split
 import random 
-
-def convert_label(label:str):
-    conv_map = {"queen present or original queen":0,
-                "queen not present":1,
-                "queen present and rejected":2, 
-                "queen present and newly accepted":3}
-    num_label = conv_map[label]
-    return num_label
-
+import pickle
 
 class CustomDataset(Dataset):
-    def __init__(self, csv_file, train=True, transform=None):
-        self.data = pd.read_csv(csv_file)
-        self.transform = transform
-        self.class_indices = defaultdict(list)  # Dictionary to store indices of samples for each class
+    def __init__(self, file_path, sequence_length):
+        # Load data from pickle file
+        with open(file_path, 'rb') as f:
+            data = pickle.load(f)
         
-        # Organize indices based on class
-        for idx, row in self.data.iterrows():
-            img_name = row['modified_file_name']
-            img_name = "C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\scripts\\spectrograms\\" + img_name
-            img_name = img_name[:-4] + ".png"
-            if os.path.exists(img_name):
-                label = row['queen status']
-                self.class_indices[label].append(idx)
-
-        # Split dataset into train and test sets
-        train_data, test_data = train_test_split(self.data, test_size=0.2, stratify=self.data['queen status'], random_state=42)
-
-        if train:
-            data_to_use = train_data
-        else:
-            data_to_use = test_data
-
-        # Upsample each class in the train set to balance classes
-        self.upsampled_indices = []
-        max_samples = max(len(indices) for indices in self.class_indices.values())
-        for label, indices in self.class_indices.items():
-            if train:
-                # import ipdb; ipdb.set_trace()
-                # Upsample only if it's the training data
-                while len(indices) < max_samples:
-                    indices.extend(random.sample(indices, min(max_samples - len(indices), len(indices))))
-                self.upsampled_indices.extend(indices)
-            else:
-                # Use all samples for testing without upsampling
-                self.upsampled_indices.extend(data_to_use.index[data_to_use['queen status'] == label]) 
-
+        centroids = np.array(data['centroids'])
+        flux = np.array(data['flux'])
+        self.labels = data['labels']
+        self.sequence_length = sequence_length
+        self.centroids = (centroids - centroids.mean()) / centroids.std()
+        self.flux = (flux - flux.mean()) / flux.std()
+        
+        # 2584
+        
     def __len__(self):
-        return len(self.upsampled_indices)
-
+        return len(self.labels)
+    
     def __getitem__(self, idx):
-        idx = self.upsampled_indices[idx]  # Get the index of upsampled sample
-        img_name = self.data.iloc[idx, 2]  # Assuming "file name" is the third column
-        label = self.data.iloc[idx, 1]  # Assuming "queen states" is the second column
-        img_name = "C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\scripts\\spectrograms\\" + img_name
-        img_name = img_name[:-4] + ".png"
-        if os.path.exists(img_name):
-            image = Image.open(img_name).convert('RGB')
-        else:
-            # If the file doesn't exist, return a placeholder image
-            image = Image.new('RGB', (224, 224), (0, 0, 0))
+        # Get centroids, flux, and label for the given index
+        centroids = self.centroids[idx]
+        flux = self.flux[idx]
+        label = self.labels[idx]
+        
+        # Divide sequences into segments of length sequence_length
+        centroids_segments = self._divide_into_segments(centroids, self.sequence_length)
+        flux_segments = self._divide_into_segments(flux, self.sequence_length)
+        x = np.array([centroids_segments, flux_segments])
+        return torch.from_numpy(x).float(), label
+    
+    def _divide_into_segments(self, sequence, length):
+        num_segments = len(sequence) // length
+        segments = [sequence[i*length:(i+1)*length] for i in range(num_segments)]
+        
+        # Pad the last segment if necessary
+        
+        if len(sequence) % length != 0:
+            padding = [0] * (length - len(sequence) % length)
+            segments.append(sequence[-length:] + padding)
+        
+        return segments
+        return np.array([np.array(self.centroids[idx]), np.array(self.flux[idx])]), self.labels[idx]
 
 
-        if self.transform:
-            image = self.transform(image)
 
-        return image, label
-
-class CRNN(nn.Module):
-    def __init__(self, num_classes=4, hidden_size=256, num_layers=2):
-        super(CRNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.rnn = nn.LSTM(input_size=32 * 56 * 56, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, 128)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(128, 4)
-
+class AudioLSTM(nn.Module):
+    def __init__(self, input_size_centroids, input_size_flux, hidden_size, num_classes):
+        super(AudioLSTM, self).__init__()
+        
+        # LSTM for spectral centroids
+        self.lstm_centroids = nn.LSTM(input_size=input_size_centroids, hidden_size=hidden_size, batch_first=True)
+        
+        # LSTM for spectral flux
+        self.lstm_flux = nn.LSTM(input_size=input_size_flux, hidden_size=hidden_size, batch_first=True)
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(17408, 64)  # Concatenating outputs of both LSTMs
+        
+        self.fc2 = nn.Linear(64, num_classes)
+        
     def forward(self, x):
-        batch_size, _, _, _ = x.size()
-        x = nn.functional.relu(self.conv1(x))
-        x = self.pool(x)
-        x = nn.functional.relu(self.conv2(x))
-        x = self.pool(x)
         # import ipdb; ipdb.set_trace()
-        x = x.view(batch_size, -1, 32 * 56 * 56)  # reshape for the RNN
-        # Forward pass through RNN layer
-        h_0 = torch.zeros(self.rnn.num_layers, x.size(0), self.rnn.hidden_size).to(x.device)
-        c_0 = torch.zeros(self.rnn.num_layers, x.size(0), self.rnn.hidden_size).to(x.device)
-        x, _ = self.rnn(x, (h_0, c_0))
-        # Reshape output from RNN to fit into fully connected layer
-        x = x[:, -1, :]  # get the last timestep output
-        x = self.fc(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        return x
+        # LSTM for spectral centroids
+        # bs, _, n  = x.shape
+        x_centroids = x[:,0,:]
+        x_flux = x[:,1,:]
+        # x_flux = x_flux.reshape((bs,n,1))
+        # x_centroids = x_flux.reshape((bs,n,1))
+        out_cent, (h_n_centroids, _) = self.lstm_centroids(x_centroids)
+        
+        # LSTM for spectral flux
+        out_flux, (h_n_flux, _) = self.lstm_flux(x_flux)
+        
+        # Concatenate the last hidden states of both LSTMs
+        out = torch.cat((out_cent.reshape((x.shape[0],-1)), out_flux.reshape((x.shape[0],-1))), dim=1)
+        
+        # Fully connected layers
+        out = torch.sigmoid(self.fc1(out))
+        out = self.fc2(out)
+        
+        
+        return out
 
 
-# Define transformations for image preprocessing    
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Resize image to 224x224
-    transforms.ToTensor(),           # Convert PIL image to tensor
-    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])  # Normalize image
-])
-# Hyperparameters
-# batch_sizes = [64,256,128,24]
-hidden_sizes = [384]
-batch_sizes = [128]
+# Define input sizes and other hyperparameters
+input_size_centroids = input_size_flux = 152
+hidden_size = 64
+num_classes = 4
+
+
+def transform(sample):
+    centroids, flux, label = sample
+    # Normalize centroids and flux
+   
+    return centroids, flux, label
+
+hidden_sizes = [512]
+batch_sizes = [1028]
 epochs_list = [1]
-epochs = 30
-lrs= [0.0002]
+epochs = 1000
+lrs= [0.000005]
 layers=[1]
-num_layers=1
+num_layers=5
 for hidden_size in hidden_sizes:  
     for batch_size in batch_sizes:
         for learning_rate in lrs:
@@ -142,36 +133,35 @@ for hidden_size in hidden_sizes:
                 config = {'batch_size': batch_size, 
                         'learning_rate': learning_rate, 
                         'epochs': epochs},
-                name= "STAR_CRNN_"   + "_" + str(batch_size) + "_" + str(learning_rate)[2:] + "_" + str(hidden_size) + "_" + str(num_layers)
+                name= "LSTM_"   + "_" + str(batch_size) + "_" + str(learning_rate)[2:] + "_" + str(hidden_size) + "_" + str(num_layers)
                     
             )
             # # Create custom dataset and DataLoader
             # dataset = CustomDataset(csv_file='C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\train.csv', transform=transform)
-
-            # # Define the size of train and validation sets
-            # train_size = int(0.8 * len(dataset))
-            csv_file='C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\train.csv'
-            # val_size = len(dataset) - train_size
-
-           # Create train and test datasets
-            train_dataset = CustomDataset(csv_file=csv_file, train=True, transform=transform)
-            test_dataset = CustomDataset(csv_file=csv_file, train=False, transform=transform)
-
-            # Create data loaders
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            val_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
             # Example usage in training loop
-            # model = CRNN( input_size=(3,224,224), num_classes=4,hidden_size=hidden_size)
-            model = CRNN(num_classes=4,hidden_size=hidden_size,num_layers=num_layers)
+            # model = CRNN( input_size=(3,224,224), num_classes=4,hidden_size=hidden_size
+            model = AudioLSTM(input_size_centroids, input_size_flux, hidden_size, num_classes=4)
             device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-            print(device)
             model = model.to(device)
-
 
             print("Created model")
             criterion = torch.nn.CrossEntropyLoss()
             criterion = criterion.to(device)
             optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+            
+            path = 'C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\scripts\\centroids.pkl'
+            dataset = CustomDataset(path,input_size_centroids)
+
+            # Define the sizes of train and test sets
+            train_size = int(0.8 * len(dataset))
+            test_size = len(dataset) - train_size
+
+            # Split the dataset into train and test sets
+            train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+            # Define data loaders for train and test sets
+            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
             # optimizer = optimizer.to(device)
             losses=[]
             for epoch in range(epochs):
@@ -229,7 +219,7 @@ for hidden_size in hidden_sizes:
             print(f"Validation Accuracy: {accuracy}")
            
 
-            torch.save(model.state_dict(), "models2\\NEW_CRNN_"   + "_" + str(batch_size) + "_" + str(learning_rate)[2:] + "_" + str(hidden_size) + ".pth")
+            torch.save(model.state_dict(), "models2\\LSTM_"   + "_" + str(batch_size) + "_" + str(learning_rate)[2:] + "_" + str(hidden_size) + ".pth")
             wandb.finish()
 
         def create_confusion_matrix(model, test_loader):

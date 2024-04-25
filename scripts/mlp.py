@@ -11,7 +11,7 @@ import wandb
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-
+   
 
 # Define MLP model
 class MLP(nn.Module):

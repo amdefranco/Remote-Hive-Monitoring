@@ -36,6 +36,8 @@ spectrogram_librosa = (
 def show_spectrogram(spec, title, sr, hop_length, y_axis="log", x_axis="time"):
     librosa.display.specshow(spec, sr=sr, y_axis=y_axis, x_axis=x_axis, hop_length=hop_length)
     plt.title(title)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Frequency (Hz)")
     plt.colorbar(format="%+2.0f dB")
     plt.tight_layout()
     plt.show()

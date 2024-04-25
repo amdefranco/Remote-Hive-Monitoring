@@ -17,30 +17,34 @@ def spectral_centroid(bee,sr):
     FRAME_SIZE = 1024
     HOP_LENGTH = 512
     sc = librosa.feature.spectral_centroid(y=bee, sr=sr, n_fft=FRAME_SIZE, hop_length=HOP_LENGTH)[0]
-    return sc
+    onset_env = librosa.onset.onset_strength(y=bee, sr=sr)
+    return sc, onset_env
+
 # Read train.csv
 train_df = pd.read_csv('C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\train.csv')
 
 # Initialize lists to store results
-results = {"centroids":[], "labels": []}
+results = {"centroids":[], "labels": [],"flux":[]}
 
 # Loop over sound file names in train.csv
 for index, row in tqdm(train_df.iterrows(), total=len(train_df), desc='Processing audio files'):
-    filename = row['file name']  # Assuming 'filename' is the column name containing sound file names
+    filename = row['modified_file_name']  # Assuming 'filename' is the column name containing sound file names
     label = row['queen status']  # Assuming 'label' is the column name containing labels
     root = "C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\sound_files\\sound_files\\"
 
     file = os.path.join(root,filename)
     # ipd.Audio(os.path.join(root,filename))
     if os.path.exists(file):
-        print(file)
+        # print(file)
         bee, sr = librosa.load(file)
         # Call your function on the sound file
-        output = spectral_centroid(bee,sr)
+        sc, sf = spectral_centroid(bee,sr)
 
         # Append results to lists
-        results["centroids"].append(output)
-        results["labels"].append(convert_label(label))
+        results["flux"].append(sf)
+        results["centroids"].append(sc)
+        results["labels"].append(label)
+# import ipdb; ipdb.set_trace()
 
 with open('centroids.pkl', 'wb') as f:
     pickle.dump(results, f)

@@ -9,10 +9,11 @@ import numpy as np
 import librosa
 import IPython.display as ipd
 
-root = 'C:\\Users\\adefr\\OneDrive\\Desktop\\bees\\sound_files\\sound_files\\'
+root = "C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\sound_files\\sound_files\\"
 # filename = '2022-06-05--17-41-01_2__segment0.wav'
 # filename = '2022-06-05--18-40-08_2__segment0.wav'
-filename = '2022-06-07--13-07-01_2__segment0.wav'
+# filename = '2022-06-07--13-07-01_2__segment0.wav'
+filename = '2022-06-06--18-21-16_2__segment3.wav'
 
 
 
@@ -47,7 +48,7 @@ def spectral_centroid():
     frames = range(len(sc))
     t = librosa.frames_to_time(frames, hop_length=HOP_LENGTH)
     plt.figure(figsize=(25,10))
-    plt.plot(t, sc, color='r')
+    plt.plot(t, sc, color='#950952')
     plt.title("Spectral Centroid of Bee Audio Sample")
     plt.xlabel("Time (s)")
     plt.ylabel("Spectral Centroid (Hz)")
@@ -91,13 +92,14 @@ def mel_spectro():
     plt.show()
 
 def spectral_flux():
+    
     onset_env = librosa.onset.onset_strength(y=bee, sr=sr)
     plt.figure(figsize=(20, 4))
-    plt.plot(onset_env)
-    plt.grid()
-    plt.title('Spectral flux')
-    plt.xlabel('time')
-    plt.ylabel('Onset')
+    plt.plot(onset_env,color = "#950952")
+    # plt.grid()
+    plt.title("Spectral Flux of Bee Audio Sample")
+    plt.xlabel('Time (s)')
+    plt.ylabel('Flux (Hz)')
     plt.show()
 def spectral_rolloff():
     S, phase = librosa.magphase(librosa.stft(bee))
@@ -111,9 +113,9 @@ def spectral_rolloff():
 
 # Frequency bins as X, Magnitude on Y
 # 0.1 shows different frequencies involved in shaping bee sound, harmonics
-plot_mag_spectrum(bee,"Magnitude Spectrum for Bee Audio",sr,.0025)
-spectral_centroid()
-mel_filter()
-mel_spectro()
+# plot_mag_spectrum(bee,"Magnitude Spectrum for Bee Audio",sr,.0025)
+# spectral_centroid()
+# mel_filter()
+# mel_spectro()
 spectral_flux()
-spectral_rolloff()
+# spectral_rolloff()

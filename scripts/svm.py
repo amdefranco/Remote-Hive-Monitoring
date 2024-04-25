@@ -26,14 +26,18 @@ NUM_TRIALS = 30
 file = 'C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\scripts\\centroids.pkl'
 with (open(file, "rb")) as f:
     df = pickle.load(f)
-    X = df["centroids"]
+    ce = np.array(df["centroids"])
+    ce = ce/np.linalg.norm(ce, axis=0)
+    fl = np.array(df["flux"])
+    fl = fl/np.linalg.norm(ce, axis=0)
+    X = np.concatenate([ce,fl],axis=1)
+    # X = ce 
     y = df["labels"]
-    X = X/np.linalg.norm(X, axis=0)
     print(X.shape)
 
 # import ipdb; ipdb.set_trace()
 # Split the dataset into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
 
 # Set up possible values of parameters to optimize over
 # p_grid = {"C": [1, 10, 100], "gamma": [0.01, 0.1]}
@@ -51,6 +55,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 # p_grid = {"C": [1, 10, 100,50], "gamma": [0.01, 0.1,0.001]}
 # clf = GridSearchCV(estimator=svm, param_grid=p_grid, cv=4)
 class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
+class_weights = [200,300,100,-10]
+print(class_weights)
 svc = SVC(decision_function_shape='ovo', class_weight=dict(zip(np.unique(y_train), class_weights)))
 
 clf = OneVsRestClassifier(svc)
@@ -62,11 +68,17 @@ print("Accuracy:", accuracy)
 
 # Compute confusion matrix
 conf_matrix = confusion_matrix(y_test, y_pred)
+conf_matrix = 
+# Create confusion matrix plot
+def plot_confusion_matrix(conf_matrix, classes):
+    conf_matrix_norm = conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix_norm, annot=True, fmt=".2%", cmap="Blues", xticklabels=classes, yticklabels=classes)
+    plt.xlabel('Predicted Labels')
+    plt.xlabel('Predicted Labels')
+    plt.ylabel('True Labels')
+    plt.title('Confusion Matrix (Normalized)')
+    plt.show()
 
-# Plot confusion matrix using Seaborn
-plt.figure(figsize=(8, 6))
-sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
-plt.xlabel('Predicted Labels')
-plt.ylabel('True Labels')
-plt.title('Confusion Matrix on Test Data')
-plt.show()
+
+plot_confusion_matrix(conf_matrix, classes=["Present/Original", "Not Present", "Rejected", "Accepted"])

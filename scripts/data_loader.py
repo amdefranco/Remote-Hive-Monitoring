@@ -4,9 +4,9 @@ import numpy as np
 import shutil, os
 from pydub import AudioSegment
 
-train=pd.read_csv('C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\train.csv')
+train=pd.read_csv('C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\all_data_updated.csv')
 
-
+import ipdb; ipdb.set_trace()
 
 # Id=[]
 # for dirname, _, filenames in os.walk('C:\\Users\\mateo\\Desktop\\ABBY GOES HERE\\bees\\sound_files\\sound_files'):
